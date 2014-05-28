@@ -10,7 +10,7 @@ import sys
 import re
 import numpy as np
 import os.path
-import mathplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 import matplotlib.mlab as mlab
 
 def main():
@@ -23,58 +23,61 @@ def main():
     search = "GC"
 
     #create the path for the folder 
-    folder = os.path.join('/', 'Users', 'gracekathrynchandler', 'ErillLab', 'data', 'LexA_Binding_and_Upstream_Regions',)
+    data_folder = os.path.join('..', 'data' , 'LexA_Binding_and_Upstream_Regions', 'Pruned')
     
-    for file in os.listdir(folder):
+    for file in os.listdir(data_folder):
         #Open the file
-        f  = open( file, 'r+')
-        
-        #Create a list to hold the 300 bp regions
-        bpPromoterRegions = []
+        f  = open( os.path.join( data_folder , file), 'r+')
+        f.seek(0)
+
+
 
         #Parse the file
-        for line in f:
-            
+        
             #skip lines
             #lines where data begins in the files
-            start = 1
-            end = 4
-            #make temp string
-            tempString = f.readlines()[1:4]
-            bpPromoterRegions.add(tempString)
-            #Increment the start and end for the next section
-            start += 5
-            end += 5
+        start = 1
+        
+        #basecount will count how many bases we iterate through
+        base_count =0
+
+        #make temp string
+        lines = f.readlines()
+        
+        n = len(lines)
+
+        #Create a list to hold the 300 bp regions
+        #upstream_regions = [lines[i:i+3] for i in range(0,n,5)] 
+
+
    #iterate through each 300 bp region in the provided data
-        for region in metagenomeData:
+        #for upstream_region in upstream_regions:
         #make a count to use for the gc concentration
         #the count needs to be re initialized for each 300 bp section
-            count = 0
-        #iterate through each bp in the nonCoding region of 300 bp
-            for i in nonCoding:
+        gc_count = 0
+        
+   #iterate through each bp in the nonCoding region of 300 bp
+        for line in lines:
             #if the bp is g or c, increment the count
-                if i in search:
-                    count += 1
+            if line[0] != "<":
+                for base in line:
+                    if base in search or  base in search.lower():
+                        gc_count += 1
+                    base_count += 1
         #conentration will equal the number of g and c divided by total search width 300
-                    count = (count / 300.0)
+        gcFrequency = float(float(gc_count) / float(base_count))
+        
         #add this concentration to the array
-                    gcContents.add(count)
+        gcContents.append(gcFrequency)
+        f.close()
+        
+    print gcContents
 
-
-#make the gc content histogram
-# make an x coordinate set
-    #Put the GC content list in order
-    gcContents = np.arrange(gcContents)
-    x = dict()
-    for content in gcContents:
-        if content not in x:
-            #value is a count of how many ( will be used as y values for historgram)
-            x[content] = 1
-        else:
-            x[content] += 1
-
-    plt.plot(x.keys(), x.values())
-    
+    #Make the histogram
+    plt.hist(gcContents, bins = 100)
+    plt.ylabel('Frequency')
+    plt.xlabel('GC Content')
+    plt.show()
 
 
 main()
