@@ -1,6 +1,6 @@
 #File: Make_Synthetic_Set.py
 #Author: Grace Chandler
-#Last edit: 17-06-14
+#Last edit: 18-07-14
 #Description: This program takes in a set of known binding sites/motifs and reconstructs a snthetic data set from it
 
 import time
@@ -46,6 +46,7 @@ def Get_Base_Frequencies(lines, base_frequencies):
     #print base_count
 
     base_count = float(base_count)
+    
     #add the frequencies to the list
     base_frequencies.append(float(float(a_count)/base_count))
     base_frequencies.append(float(float(t_count)/base_count))
@@ -55,67 +56,10 @@ def Get_Base_Frequencies(lines, base_frequencies):
     print base_frequencies
 
 
-#This function utilizes the random.multinomial method to produce a synthetic dataset using the desired length and number of sites
-def Multinomial(length, sites, lines):
-    base_frequencies = []
-
-    #Keep track of time to compare it to the Logical method
-    start_time = time.time()
-
-    base_frq = Get_Base_Frequencies(lines, base_frequencies)
-
-    bs_len = len(lines[0])
-    binding_sites = np.random.multinomial(bs_len, [base_frq]*4, size = sites)
+def Logical(length, sites, lines, loci):
     
-    #shuffle the binding sites
-
-    for site in binding_sites:
-        #MAKE IT A LIST
-        temp_list = []
-        count = 0
-        nucleotides = 'ATGC'
-
-        for number  in site:
-            print number 
-            while count < number:
-                temp_list.append(nucleotides[count])
-            count += 1
-
-        site = temp_list
-        random.shuffle(site)
-        site  = ''.join(site)
-
-    #Create the other, non site bases
-    #MAKE IT A LIST
-    temp_list = []
-    count = 0
-    non_binding = np.random.multinomial(length - (bs_len * sites), [.25]*4, size = 1)
-    for number in non_binding:
-        while count < number:
-            temp_list.append(nucleotides[count])
-        count += 1
-
-    non_binding = temp_list
-    random.shuffle(non_binding)
+    #print 'length at beginning of logical ', length
     
-            
-    print binding_sites
-
-    #Create the synthetic set
-
-    for site in binding_sites:
-        locus = random.range(len(non_binding))
-        non_binding.insert(locus, site)
-
-
-    print ''.join(non_binding)
-    
-    #calculate method runtime
-
-    print "Time: " , time.time() - start_time , " seconds "
-
-
-def Logical(length, sites, lines):
     base_frq = []
     
     #Keep track of time to compare it to the Logical method
@@ -131,6 +75,9 @@ def Logical(length, sites, lines):
     bs_len = len(lines[0])
     binding_sites = []
     
+    
+    #Make a selection pool to draw nucleotides from
+    #This creates the means by which to obtain nucleotides with the proper probability
     for frequency in base_frq:
         frequency = int(frequency*1000)
         for i in range(0 , frequency):
@@ -139,8 +86,7 @@ def Logical(length, sites, lines):
     
     count = 0
 
-    print 'length', len(selection_pool)
-
+    #This portion of the code makes binding sites based on the number of desired 
     for i in range(sites):
         temp_site = []
         while count < bs_len:
@@ -150,30 +96,82 @@ def Logical(length, sites, lines):
             temp_site.append(nucleotide)
             count += 1
         count = 0
+        
+        #make that puppy into a string for safe keeping
         temp_site = ''.join(temp_site)
         print temp_site
         binding_sites.append(temp_site)
 
 
     count = 0
-    random_nucleotides = []
 
-    leftovers = int(int(length - (bs_len * sites)) / 4)
-    print 'leftovers ', leftovers
-
+    #Initializing a lot of lists
+    #Maybe somehow find a better way to to this
+    non_coding_nucleotides = []
+    coding_nucleotides = []
+    coding_region = []
+    non_coding_region = [] 
+    
+    #Make a set of random coding frequency nucleotides to randomly select from
     while count < 4:
-        for i in range(0, leftovers):
-            random_nucleotides.append(nucleotides[count])
+        for i in range(0,25):
+            coding_nucleotides.append(nucleotides[count])
+        
+        if count < 2:
+            for i in range(0,40):
+                non_coding_nucleotides.append(nucleotides[count])
+        if count > 1:
+            for i in range(0,60):
+                non_coding_nucleotides.append(nucleotides[count])
+       
         count += 1
         
-    random.shuffle(random_nucleotides)
+    count = 0   
+    
+   
+    #assign 50 random nucleotides in the proportion for coding strand
+    #use .25 for the coding strand
+    for i in range(0,50):
+        coding_region.append(coding_nucleotides[random.randrange(len(coding_nucleotides))])
+    
+  
+    #how many binding sites should be assigned to the noncoding region
+    leftovers = (length - (bs_len * sites))
+   
+   
+    for i in range(0, leftovers):
+        non_coding_region.append(non_coding_nucleotides[random.randrange(len(non_coding_nucleotides))])
+        
+    #This is the part of the show where Grace comes out and does a lot of number checking 
+    print 'leftovers ', leftovers
+    print 'length desired', length
+    print 'num sites', sites
+    
+    
+    print 'bs_len ', bs_len  
+    
+    print 'length of non_Coding ', len(non_coding_region)
+    print 'length of Coding ', len(coding_region)  
 
+    print 'total length should be 350'
+    print 'total length is: ', (len(non_coding_region) + (sites * bs_len) + len(coding_region))
+    
+   #Now we insert the bs into the list of noncoding nucleotides!
     for site in binding_sites:
-        locus = random.randrange(len(random_nucleotides))
-        random_nucleotides.insert(locus, site)
-
-
-    set =  ''.join(random_nucleotides)
+        locus = random.randrange(len(non_coding_region))
+        
+        #add this to the list of loci
+        #also add the site for reference of what is at that loci
+        loci.append(locus)
+        loci.append(site)
+        
+        #add the binding site to the noncoding region
+        non_coding_region.insert(locus, site)
+        
+    #add the 50 bp coding region to the end of the strand
+    non_coding_region.extend(coding_region)
+   
+    set =  ''.join(non_coding_region)
             
     return set
 
@@ -182,6 +180,9 @@ def Logical(length, sites, lines):
     print "Time: " , time.time() - start_time , " seconds "
 
 def Make_Synthetic_Set():
+    
+    #initialize the loci list
+    loci = []
 
     total_start = time.time()
 
@@ -191,7 +192,7 @@ def Make_Synthetic_Set():
     print "TF motif options: LexA, Fur, CodY "
     
     input_check = False
-    if input_check != True:
+    while input_check != True:
         TF_input = raw_input("Please select TF motif: ")
         if TF_input in ['LexA', 'Fur', 'CodY']:
             input_check = True
@@ -210,8 +211,7 @@ def Make_Synthetic_Set():
         
         strand_length = int(raw_input("Enter strand length: "))
         num_sites = int(raw_input("Enter number of sites to place in strand: "))
-        prob_method = raw_input("Select method: enter M for multinomial, L for logistical ")
-        num_sets = input("Enter desired number of sets: ")
+        num_sets = int(raw_input("Enter desired number of sets: "))
         set_count = 0
         while set_count < num_sets:
 
@@ -221,19 +221,13 @@ def Make_Synthetic_Set():
 
 #determine number of sites to enrich strand with
 
-            if prob_method == 'M':
-                synthetic_set = Multinomial(strand_length, num_sites, lines)
-
-            elif prob_method == 'L':
-                synthetic_set = Logical(strand_length, num_sites, lines)
-                print "length ", len(synthetic_set)
-                print synthetic_set
-                outFile.write(synthetic_set)
-                outFile.write("\n")
+            synthetic_set = Logical(strand_length, num_sites, lines, loci)
+            print "length ", len(synthetic_set)
+            print synthetic_set
+            outFile.write(synthetic_set)
+            outFile.write("\n")
                 
             set_count += 1
-#Multinomial probability set
-
 
 #array of nucleotides
 
