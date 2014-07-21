@@ -224,6 +224,16 @@ def Make_Synthetic_Set():
             synthetic_set = Logical(strand_length, num_sites, lines, loci)
             print "length ", len(synthetic_set)
             print synthetic_set
+            outFile.write(">binding site loci: ")
+                
+            for locus in loci:
+                try:
+                    outFile.write(locus)
+                except TypeError:
+                    outFile.write(str(locus))
+                
+                outFile.write(" ")
+            outFile.write("\n") 
             outFile.write(synthetic_set)
             outFile.write("\n")
                 
