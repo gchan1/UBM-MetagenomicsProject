@@ -456,27 +456,28 @@ def pssm_quick_sort(array):
     greater_than = []
     equal_to = []
     
-    count = 0
-    while count == 0:
-        for item in array:
-            print item
-            pivot_point = item[1]
-            count += 1
+    
     
     if len(array) > 1:
+        
+        pivot_point = array[0][1]
         
         #this is the point the other  values will be compared to
     
         for item in array:
             
+            
             #Only the second number is the sorting value
             x = item[1]
             if x < pivot_point:
-                less_than.append(item[1])
+                print 'add to less than'
+                less_than.append(item)
             if x > pivot_point:
-                greater_than.append(item[1])
+                print 'add to greater than'
+                greater_than.append(item)
             if x == pivot_point:
-                equal_to.append(item[1])
+                print 'add to equal to'
+                equal_to.append(item)
                 
         return pssm_quick_sort(less_than) + equal_to + pssm_quick_sort(greater_than)
     
@@ -567,7 +568,10 @@ def main():
         print'sequence i ', sequences[i]
         PSSM_Score_List = PSSM(binding_sites, sequences[i] , i)
         PSSM_Scores.write("Sequence #%d"  %i)
-        PSSM_Scores.write(PSSM_Score_List)
+        
+        for item in PSSM_Score_List:
+            PSSM_Scores.write(str(item))
+       
         PSSM_Scores.write("\n")
     print 'Finished'
     #bsites = ['ACTGACTG', 'CTGACTGA' ,'TGACTGAC', 'GACTGACT', 'ACCTGAAT', 'ACCTGAAT', 'ACCCGATT','AACTGTAT']
