@@ -1,10 +1,9 @@
-__author__ = 'jobott'
-#Name:
-#Inputs:
-#Outputs:
-#Description:
+#Name: Grace Chandler, Manchild
+#Description: This program is a PSSM calling script using, for this time, synthetically created data sets. It makes pssm binding site calls
+#and based off of these calls, it determines a true pos/false neg rate and an ROC curve. This is an incredibly rough copy of the final 
+#product, but shoudl work
 
-#Importing the math function (needed to perfom the log)
+import time
 import math
 import os.path
 import matplotlib.pyplot as plt
@@ -17,7 +16,10 @@ import matplotlib.mlab as mlab
 #Outputs: PSFM
 def PSFM(binding_sites):
 
-   
+    print 'entered psfm'
+    print binding_sites
+    start = time.time()
+    
     a_bases = []
     c_bases = []
     t_bases = []
@@ -27,6 +29,10 @@ def PSFM(binding_sites):
     total_sites = float(len(binding_sites))
     site_length = int(len(binding_sites[0]))
     window = site_length
+
+    print 'total sites ', total_sites
+    print 'site length ' , site_length
+
 
     #Making the PSFM have the number of columns as the length of the first binding site
     a_bases.extend([float(0)]*site_length)
@@ -45,29 +51,24 @@ def PSFM(binding_sites):
             if site[base] == 'C':
                 c_bases[base] += 1
             if site[base] == 'T':
-                t_bases[base] += 1
+                t_bases[base]  += 1
             if site[base] == 'G':
                 g_bases[base] += 1
 
     #Making the counts into frequencies
-    a_freq = [float(x/total_sites) for x in a_bases]
-    c_freq = [float(x/total_sites) for x in c_bases]
-    t_freq = [float(x/total_sites) for x in t_bases]
-    g_freq = [float(x/total_sites) for x in g_bases]
-
-
-    #Printing the PSFM
-    print 'Obtained PSFM:'
-    print 'A:', a_freq
-    print 'C:', c_freq
-    print 'T:', t_freq
-    print 'G:', g_freq
+    a_freq = [x/total_sites for x in a_bases]
+    c_freq = [x/total_sites for x in c_bases]
+    t_freq = [x/total_sites for x in t_bases]
+    g_freq = [x/total_sites for x in g_bases]
 
 
     #Create a list to store the PSFM in (a list with the 4 lists of the frequencies of a,c,t,g)
     PSFM = [a_freq,c_freq,t_freq,g_freq]
 
+
+    print 'time: ' ,( time.time()- start)
     #Returning the PSFM
+    print 'psfm: ', PSFM
     return PSFM
 
 
@@ -76,11 +77,16 @@ def PSFM(binding_sites):
 #Outputs: A list of P(subsequence|motif) for each subsequence fromed by a sliding window
 def P_motif(PSFM,sequences):
 
+
+    print PSFM
+    print sequences
+
     #Creating a list to store the probability of each subsequece belonging to the TF motif
     list_of_motif_probs = []
 
     #Determining the window length based off of the length of the PSFM motif
     window = int(len(PSFM[0]))
+    print 'window: ', window
 
     #Iterating the indexes of all of the initial bases for each case that the sliding window encounters
     for initial in range(len(sequences)-window+1):
@@ -106,8 +112,11 @@ def P_motif(PSFM,sequences):
                 motif_prob *= float(PSFM[3][i])
         print'motif prob', motif_prob
         #Appending the list that stores the motif probabilities by the value motif_prob
-        list_of_motif_probs.append(motif_prob)
+       
+        #Added the motif prob
         
+        list_of_motif_probs.append(motif_prob)
+        print 'added the motif prob'
         
         #Re-setting the value of motif_prob to 1 to apply to the next subsequence
         motif_prob = 1
@@ -121,6 +130,8 @@ def P_motif(PSFM,sequences):
         print 'P_motif(bases %s'%(start+1), '- %s)='%(start+window),  '%s'%list_of_motif_probs[start]
 
     #Having the function return the list containing the motif probabilities
+
+    print list_of_motif_probs
     return list_of_motif_probs
 
 
@@ -241,8 +252,8 @@ def background_probs(sequence, binding_sites):
         counts[key] = float(counts[key])
 
     #Printing out the sequence length
-    print ' '
-    print 'The length of the sequence was %s' %sequence_length
+    #print ' '
+    #print 'The length of the sequence was %s' %sequence_length
 
     for key in keys:
         print key, counts[key]
@@ -278,13 +289,6 @@ def background_probs(sequence, binding_sites):
     keys = background_probs.keys()
     values = background_probs.values()
     
-    #Printing out the conditional probabilities
-    print ' '
-    print 'Conditional probabilities:'
-    for key in keys:
-        print key,
-        print '=',
-        print background_probs[key]
 
     #Overall section scanning an input sequence with a sliding window and
     #applying the Markov-1 background probabilities
@@ -348,6 +352,7 @@ def background_probs(sequence, binding_sites):
             
             
             list_of_back_probs.append(m1_prob)
+            print 'added back prob'
             print subseq
             #Re-inverting the sequence order so that it is the same as before
             subseq = subseq[::-1]
@@ -402,6 +407,7 @@ def background_probs(sequence, binding_sites):
         #After iterating through the subsequence and obtaining its m1_prob,
         #apending that to our list of background probabilities
         list_of_back_probs.append(m1_prob)
+        print 'added background prob'
         #Re-setting m1_prob to 1 so that the next subsequence's m1_prob can be calculated
         m1_prob = 1
 
@@ -433,57 +439,7 @@ def Plot_Histogram(data_set, file_name, num_bins, x_label, y_label):
     #Close the plot to avoid overlap                                                                                                                                               
     plt.close()
 
-
-#This function assigns locations to be linked to values in a list, for when a dictionary can't be used
-#A situation where this would be needed would be for sorting.
-def assign_location(array):
-    new_array = []
-    for i in range(len(array)):
-    
-        temp_array = [(i+1), array[i]]
-        new_array.append(temp_array)
-                
-    return new_array
         
-#This function is a slightly altered quicksort made to sort PSSM scores while maintaining their locus 
-def pssm_quick_sort(array):
-    
-    
-    print array
-    
-    #To store values during sort
-    less_than = []
-    greater_than = []
-    equal_to = []
-    
-    
-    
-    if len(array) > 1:
-        
-        pivot_point = array[0][1]
-        
-        #this is the point the other  values will be compared to
-    
-        for item in array:
-            
-            
-            #Only the second number is the sorting value
-            x = item[1]
-            if x < pivot_point:
-                print 'add to less than'
-                less_than.append(item)
-            if x > pivot_point:
-                print 'add to greater than'
-                greater_than.append(item)
-            if x == pivot_point:
-                print 'add to equal to'
-                equal_to.append(item)
-                
-        return pssm_quick_sort(less_than) + equal_to + pssm_quick_sort(greater_than)
-    
-    else: 
-        return array
-
 #Forming the PSSM
 #Inputs: sequence, list of binding sites
 #Outputs: PSSM scores for each subsequence in the sliding window
@@ -491,22 +447,26 @@ def PSSM(binding_sites,sequence, number):
 
     window = len(binding_sites[0])
     
-    #Forming the motif probabilities
-    list_of_motif_probs = P_motif(PSFM(binding_sites),sequence)
 
+    PSFM_temp = PSFM(binding_sites)
+    print PSFM_temp
+    #Forming the motif probabilities
+    list_of_motif_probs = P_motif(PSFM_temp,sequence)
+    print list_of_motif_probs
     #Forming the background probabilities
     list_of_back_probs = background_probs(sequence, binding_sites)
-
-   
+    print list_of_back_probs
     
     #Creating a list to store the ratio of P(subsequence|motif)/P(subsequence|background)
     prob_ratios = []
 
+
+    print "length of background probs", len(list_of_back_probs)
+    print "length of motif probs", len(list_of_motif_probs)
     #Iterating over the index of each subsequence initial base
     for initial in range(len(list_of_motif_probs)):
          
-        print "length of background probs", len(list_of_back_probs)
-        print "length of motif probs", len(list_of_motif_probs)
+       
          
         #Determining each initial index's P(subsequence|motif)/P(subsequence|background)
         #and appending it to prob_ratios
@@ -526,56 +486,76 @@ def PSSM(binding_sites,sequence, number):
         #Printing out the PSSM values with appropriate labeling
         #General format:
         #'PSSM_score(initial base - final base in window) = appropriate PSSM value at the
-        #                                                   given point of the sliding window
+#                                                   given point of the sliding window
        
        
         print 'PSSM_score(bases %s'%(start+1), '- %s)='%(start+window),  '%s'%PSSM_scores[start]
 
 
     #file_name = raw_input("Please enter a name for the Histogram file: ")
-    Plot_Histogram(PSSM_scores, number, 50 , 'Score', 'Counts')
-
-    PSSM_scores = assign_location(PSSM_scores)
-    PSSM_scores = pssm_quick_sort(PSSM_scores)
-    return  PSSM_scores
+    #Plot_Histogram(PSSM_scores, number, 50 , 'Score', 'Counts')
 
     
+    #PSSM_scores = assign_location(PSSM_scores)
+    #PSSM_scores = pssm_quick_sort(PSSM_scores)
+    return  PSSM_scores
+
+
 
 def main():
 
     Sequence_Data = open('Synth_Sets.txt', 'r')
-    Binding_Sites = open('Binding_Sites.txt', 'r')
+    file_path = os.path.join('..', 'data' , 'Aligned_motifs','Fur.txt' )
+    Binding_Sites = open(file_path, "r")
+    Binding_Sites.seek(0)
     PSSM_Scores = open('PSSM_Scores.txt', 'w')
+    #ROC_Data = open('ROC_Data', 'w')
     Sequence_Data.seek(0)
     Binding_Sites.seek(0)
     Sequence_Data_lines = Sequence_Data.readlines()
     Binding_Sites_lines = Binding_Sites.readlines()
-
-    
+    for line in Binding_Sites:
+        line = line.strip()
+ 
     sequences = []
     binding_sites = []
     
     for line in Sequence_Data_lines:
         if line != "\n" and line != "\r\n" and line[0] != "<":
             sequences.append(line.strip())
-    print sequences
+    #print sequences
     for line in Binding_Sites_lines:
         if line != "\n" and line != "\r\n" and line[0] != "<":
             binding_sites.append(line.strip())
+    
+    
     
     #do the pssm
     for i in range(len(sequences)):
         print'sequence i ', sequences[i]
         PSSM_Score_List = PSSM(binding_sites, sequences[i] , i)
-        PSSM_Scores.write("Sequence #%d"  %i)
+        
+        #make the calls
+        #pos_neg = Sort_Calls(PSSM_Score_List, threshold, pos_neg)
+        
+        #keys = pos_neg.keys()
         
         for item in PSSM_Score_List:
             PSSM_Scores.write(str(item))
-       
+            PSSM_Scores.write(' ')
+        
         PSSM_Scores.write("\n")
+            
+        
+    PSSM_Scores.close()
+    Binding_Sites.close()
+    Sequence_Data.close()
+       
+        
     print 'Finished'
-    #bsites = ['ACTGACTG', 'CTGACTGA' ,'TGACTGAC', 'GACTGACT', 'ACCTGAAT', 'ACCTGAAT', 'ACCCGATT','AACTGTAT']
-    #x = 'AAATAAATCGAGCTACATAGAATATCTGTTCACCCTCGGGGAGCGTGGGGTGTAC' 
     
-    #PSSM(bsites, x, 2)
+
+
 main()
+
+

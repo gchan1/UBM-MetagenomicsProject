@@ -12,6 +12,7 @@ import random
 #This function takes in the lines from a file of aligned motifs and returns a list of the frequencies of each base. The order of the list is ATGC
 def Get_Base_Frequencies(lines, base_frequencies):
 
+    freq_matrix = []
 
 #Train probabilities from strand
     a_count = 0
@@ -21,53 +22,45 @@ def Get_Base_Frequencies(lines, base_frequencies):
     base_count = 0
 
 
-
+    bs_len = len(lines[0])
     #Iterate through each motif and count the total number of ATGC in the entire set of aligned motifs
-    for motif in lines:
-        #print motif 
-
-        for base in motif:
     
-            if base == 'T' or base == 't':
-                t_count += 1
-            elif base == 'G' or base == 'g':
-                g_count += 1
-            elif base == 'A' or base == 'a':
-                a_count += 1
-            elif base == 'C' or base == 'c':
-                c_count += 1
-
-            base_count += 1
-
-    #print a_count
-    #print t_count
-    #print c_count
-    #print g_count
-    #print base_count
-
-    base_count = float(base_count)
+    #base_count = float(base_count)
     
     #add the frequencies to the list
-    base_frequencies.append(float(float(a_count)/base_count))
-    base_frequencies.append(float(float(t_count)/base_count))
-    base_frequencies.append(float(float(g_count)/base_count))
-    base_frequencies.append(float(float(c_count)/base_count))
+   
 
-    print base_frequencies
+   # print return frq_matrix
 
+def transpose(arrays):
+    return zip(*arrays)
 
-def Logical(length, sites, lines, loci):
+def Logical(length, sites, lines, loci_list, loci, Synth_Set_Stats):
     
     #print 'length at beginning of logical ', length
     
-    base_frq = []
+    #base_frq = []
     
     #Keep track of time to compare it to the Logical method
     start_time = time.time()
 
-    Get_Base_Frequencies(lines, base_frq)
-
-    print base_frq
+    temp = []
+    for line in lines:
+        line = line.strip()
+        line = list(line)
+        if len(line) == 43:
+            temp.append(line)
+    
+    lines = temp
+        
+            
+            
+    print 'len of lines: ', len(lines)
+    print 'len of one line: ', len(lines[0])
+    #Get_Base_Frequencies(lines, base_frq)
+    cols = zip(*lines)
+    
+    #print base_frq
 
     nucleotides = 'ATGC'
     selection_pool = []
@@ -78,32 +71,29 @@ def Logical(length, sites, lines, loci):
     
     #Make a selection pool to draw nucleotides from
     #This creates the means by which to obtain nucleotides with the proper probability
-    for frequency in base_frq:
-        frequency = int(frequency*1000)
-        for i in range(0 , frequency):
-            selection_pool.append(nucleotides[count])
-        count += 1
-    
+   
     count = 0
+
+    print cols
+    print 'len: cols' , len(cols)
 
     #This portion of the code makes binding sites based on the number of desired 
     for i in range(sites):
-        temp_site = []
-        while count < bs_len:
-            index = random.randrange(len(selection_pool))
-            #print 'index' , index
-            nucleotide = selection_pool[index]
-            temp_site.append(nucleotide)
-            count += 1
-        count = 0
+        temp = "".join(random.choice(col) for col in cols)
+        #print temp
+        print 'added a BS'
+        print 'len temp', len(temp)
+        binding_sites.append(temp)
         
         #make that puppy into a string for safe keeping
-        temp_site = ''.join(temp_site)
-        print temp_site
-        binding_sites.append(temp_site)
+        #temp_site = ''.join(temp_site)
+       # print temp_site
+       # binding_sites.append(temp_site)
 
 
     count = 0
+
+    #print 'binding_sites =  ' , binding_sites
 
     #Initializing a lot of lists
     #Maybe somehow find a better way to to this
@@ -134,18 +124,18 @@ def Logical(length, sites, lines, loci):
     for i in range(0,50):
         coding_region.append(coding_nucleotides[random.randrange(len(coding_nucleotides))])
     
-  
+
     #how many binding sites should be assigned to the noncoding region
     leftovers = (length - (bs_len * sites))
-   
+    print 'leftovers: ' , leftovers   
    
     for i in range(0, leftovers):
         non_coding_region.append(non_coding_nucleotides[random.randrange(len(non_coding_nucleotides))])
         
     #This is the part of the show where Grace comes out and does a lot of number checking 
-    print 'leftovers ', leftovers
-    print 'length desired', length
-    print 'num sites', sites
+    #print 'leftovers ', leftovers
+    #print 'length desired', length
+    #print 'num sites', sites
     
     
     print 'bs_len ', bs_len  
@@ -153,12 +143,19 @@ def Logical(length, sites, lines, loci):
     print 'length of non_Coding ', len(non_coding_region)
     print 'length of Coding ', len(coding_region)  
 
-    print 'total length should be 350'
+    #print 'total length should be 350'
     print 'total length is: ', (len(non_coding_region) + (sites * bs_len) + len(coding_region))
     
+    
+    
+    
+   
    #Now we insert the bs into the list of noncoding nucleotides!
-    for site in binding_sites:
-        locus = random.randrange(len(non_coding_region))
+    for i in range(sites):
+
+        site = binding_sites[i]
+        
+        locus = loci_list[i]
         
         #add this to the list of loci
         #also add the site for reference of what is at that loci
@@ -167,12 +164,18 @@ def Logical(length, sites, lines, loci):
         
         #add the binding site to the noncoding region
         non_coding_region.insert(locus, site)
-        
+        print "inserted site"
+
+    print "scary bs len" , len(binding_sites[0])
+    #print "noncoding region: " , non_coding_region
+    print "coding region: " , coding_region
     #add the 50 bp coding region to the end of the strand
     non_coding_region.extend(coding_region)
    
     set =  ''.join(non_coding_region)
-            
+
+    #print 'set: ' , set
+    print 'LEN OF ONE SET', len(set)
     return set
 
 
@@ -181,13 +184,13 @@ def Logical(length, sites, lines, loci):
 
 def Make_Synthetic_Set():
     
-    #initialize the loci list
     loci = []
 
     total_start = time.time()
 
     outFile = open('Synth_Sets.txt', 'w')
-    
+    #BS_File = open('Binding_Sites.txt', 'w')
+    Synth_Set_Stats = open('Synth_Set_Stats.txt', 'w')
     
     print "TF motif options: LexA, Fur, CodY "
     
@@ -202,17 +205,62 @@ def Make_Synthetic_Set():
         
     if input_check == True:
         
-
+        Synth_Set_Stats.write('TF motif')
+        Synth_Set_Stats.write('\n')
+        Synth_Set_Stats.write(TF_input)
+        Synth_Set_Stats.write('\n')
+    
+    
         file_path = os.path.join('..', 'data' , 'Aligned_motifs','%s.txt' %TF_input)
         f = open(file_path, "r")
         f.seek(0)
         lines = f.readlines()
         n = len(lines)
+        bs_len = len(lines[0])
         
         strand_length = int(raw_input("Enter strand length: "))
         num_sites = int(raw_input("Enter number of sites to place in strand: "))
         num_sets = int(raw_input("Enter desired number of sets: "))
+        
+        loci_list = []
+        for i in range(num_sites):
+            #you will fix this and make it better later
+            loci_list.append(int(raw_input("Enter loci for binding sites. Keep in mind the length of each site ")))
+       
+        
+        Synth_Set_Stats.write('Number of binding sites:')
+        Synth_Set_Stats.write('\n')
+        Synth_Set_Stats.write(str(num_sites))
+        Synth_Set_Stats.write('\n')
+        Synth_Set_Stats.write('Binding site length: ')
+        Synth_Set_Stats.write('\n')
+        Synth_Set_Stats.write(str(bs_len))
+        Synth_Set_Stats.write('\n')
+        
+        Synth_Set_Stats.write('Loci:')
+        Synth_Set_Stats.write('\n')
+    
+        count = 0
+        
+        for item in loci_list:
+            
+            #this accounts for the length of the bs changing the locus
+            item += (int(bs_len)*count)
+            Synth_Set_Stats.write(str(item))
+            Synth_Set_Stats.write(', ')
+            count += 1
+        
+        Synth_Set_Stats.write('\n')
+        
+        Synth_Set_Stats.write('Strand Length')
+        Synth_Set_Stats.write('\n')
+        Synth_Set_Stats.write(str(strand_length))
+        Synth_Set_Stats.write('\n')
+        
+        
         set_count = 0
+        
+        
         while set_count < num_sets:
 
 
@@ -221,17 +269,24 @@ def Make_Synthetic_Set():
 
 #determine number of sites to enrich strand with
 
-            synthetic_set = Logical(strand_length, num_sites, lines, loci)
+            synthetic_set = Logical(strand_length, num_sites, lines, loci_list, loci, Synth_Set_Stats)
             print "length ", len(synthetic_set)
-            print synthetic_set
-            outFile.write(">binding site loci: ")
+            #print synthetic_set
+            #print 'LENGTH OF SYN SET', len(synthetic_set)
+            outFile.write("< binding site loci: ")
                 
+            
+           
+            
             for locus in loci:
                 try:
                     outFile.write(locus)
+                    #if loci.index(locus) != 0 or loci.index(locus)%2 != 0:
+                        #BS_File.write(locus) 
+                        #BS_File.write("\n")
                 except TypeError:
+                    #print 'TYPE ERROR OCCURED. REVIEW NEEDED'
                     outFile.write(str(locus))
-                
                 outFile.write(" ")
             outFile.write("\n") 
             outFile.write(synthetic_set)
@@ -247,7 +302,9 @@ def Make_Synthetic_Set():
             f.close()
 #return the dataset
         outFile.close()
+        #BS_File.close()
     
     print "Total time: " , (time.time() - total_start)
+    print "Set count check: " , set_count
 
 Make_Synthetic_Set()
