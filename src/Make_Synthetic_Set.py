@@ -37,6 +37,8 @@ def transpose(arrays):
 
 def Logical(length, sites, lines, loci_list, loci, Synth_Set_Stats):
     
+    noSites = open('noSites.txt', 'w')
+    
     #print 'length at beginning of logical ', length
     
     #base_frq = []
@@ -46,20 +48,24 @@ def Logical(length, sites, lines, loci_list, loci, Synth_Set_Stats):
 
     temp = []
     for line in lines:
+        #print line
         line = line.strip()
         line = list(line)
-        if len(line) == 43:
+        #print line
+        if len(line) !=0:
             temp.append(line)
     
     lines = temp
         
             
-            
+    #print lines
     print 'len of lines: ', len(lines)
+    print 'lines 0', lines[0]
     print 'len of one line: ', len(lines[0])
     #Get_Base_Frequencies(lines, base_frq)
     cols = zip(*lines)
     
+    print 'cols', cols
     #print base_frq
 
     nucleotides = 'ATGC'
@@ -138,16 +144,17 @@ def Logical(length, sites, lines, loci_list, loci, Synth_Set_Stats):
     #print 'num sites', sites
     
     
-    print 'bs_len ', bs_len  
+    #print 'bs_len ', bs_len  
     
-    print 'length of non_Coding ', len(non_coding_region)
-    print 'length of Coding ', len(coding_region)  
+    #print 'length of non_Coding ', len(non_coding_region)
+    #print 'length of Coding ', len(coding_region)  
 
     #print 'total length should be 350'
-    print 'total length is: ', (len(non_coding_region) + (sites * bs_len) + len(coding_region))
+    #print 'total length is: ', (len(non_coding_region) + (sites * bs_len) + len(coding_region))
     
     
-    
+    noSites.write(''.join(non_coding_region))
+    noSites.write('\n')
     
    
    #Now we insert the bs into the list of noncoding nucleotides!
@@ -166,7 +173,7 @@ def Logical(length, sites, lines, loci_list, loci, Synth_Set_Stats):
         non_coding_region.insert(locus, site)
         print "inserted site"
 
-    print "scary bs len" , len(binding_sites[0])
+    #print "scary bs len" , len(binding_sites[0])
     #print "noncoding region: " , non_coding_region
     print "coding region: " , coding_region
     #add the 50 bp coding region to the end of the strand
@@ -182,6 +189,8 @@ def Logical(length, sites, lines, loci_list, loci, Synth_Set_Stats):
     #calculate method runtime
     print "Time: " , time.time() - start_time , " seconds "
 
+    noSites.close()
+    
 def Make_Synthetic_Set():
     
     loci = []
@@ -259,7 +268,7 @@ def Make_Synthetic_Set():
         
         
         set_count = 0
-        
+        loci_index = 0
         
         while set_count < num_sets:
 
@@ -271,35 +280,30 @@ def Make_Synthetic_Set():
 
             synthetic_set = Logical(strand_length, num_sites, lines, loci_list, loci, Synth_Set_Stats)
             print "length ", len(synthetic_set)
-            #print synthetic_set
-            #print 'LENGTH OF SYN SET', len(synthetic_set)
+            
             outFile.write("< binding site loci: ")
                 
             
-           
-            
-            for locus in loci:
+            print "loci ", loci 
+          
+            for i in range(0,num_sites+1):
                 try:
-                    outFile.write(locus)
-                    #if loci.index(locus) != 0 or loci.index(locus)%2 != 0:
-                        #BS_File.write(locus) 
-                        #BS_File.write("\n")
+                    outFile.write(loci[loci_index+i])
+                    outFile.write(" ")
                 except TypeError:
-                    #print 'TYPE ERROR OCCURED. REVIEW NEEDED'
-                    outFile.write(str(locus))
-                outFile.write(" ")
+                    outFile.write(str(loci[loci_index+i]))
+                    outFile.write(" ")
+                
+    
             outFile.write("\n") 
             outFile.write(synthetic_set)
             outFile.write("\n")
                 
+            loci_index += (2*num_sites)
             set_count += 1
 
-#array of nucleotides
 
-#randomly select one each time
-
-#make biniding site a certain bp
-            f.close()
+        f.close()
 #return the dataset
         outFile.close()
         #BS_File.close()
