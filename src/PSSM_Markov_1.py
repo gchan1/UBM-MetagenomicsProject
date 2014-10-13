@@ -74,7 +74,7 @@ def PSFM(binding_sites):
 
 #Applying the PSFM to determine motif-based probabilities when applying a sliding window
 #Inputs: PSFM; sequences which we want to apply the PSFM to (in one long string)
-#Outputs: A list of P(subsequence|motif) for each subsequence fromed by a sliding window
+#Outputs: A list of P(subsequence|motif) for each subsequence from by a sliding window
 def P_motif(PSFM,sequences):
 
 
@@ -92,25 +92,30 @@ def P_motif(PSFM,sequences):
     for initial in range(len(sequences)-window+1):
         #Creating a subsequence that starts at the given initial index and is as long as the pre-determined window
         subsequence = sequences[initial:initial+window]
-        #print 'subsequence', subsequence
+        print 'subsequence', subsequence
         #Setting the initial value for the motif probability of the sliding window at 1
         motif_prob = float(1)
+        print 'init motif prob', motif_prob
+        
+        
         #Iterating over the indexes of the bases in the subsequence
         for i in range(len(subsequence)):
-          
-            
+           
             #Determines what the value of the base is at that position in the subsequence (a,c,t,g)
             if subsequence[i] == 'A':
+        
                 #Multiply the value of the motif_prob by the value of the frequency of that base at the
                 #position of that base within the PSFM
                 motif_prob *= float(PSFM[0][i])
+            
             elif subsequence[i] == 'C':
                 motif_prob *= float(PSFM[1][i])
             elif subsequence[i] == 'T':
                 motif_prob *= float(PSFM[2][i])
             elif subsequence[i] == 'G':
                 motif_prob *= float(PSFM[3][i])
-        print'motif prob', motif_prob
+        
+            print'motif prob', motif_prob
         #Appending the list that stores the motif probabilities by the value motif_prob
        
         #Added the motif prob
@@ -445,11 +450,12 @@ def Plot_Histogram(data_set, file_name, num_bins, x_label, y_label):
 #Outputs: PSSM scores for each subsequence in the sliding window
 def PSSM(binding_sites,sequence, number):
 
+    print binding_sites
     window = len(binding_sites[0])
     
 
     PSFM_temp = PSFM(binding_sites)
-    print PSFM_temp
+    print 'psfm temp' , PSFM_temp
     #Forming the motif probabilities
     list_of_motif_probs = P_motif(PSFM_temp,sequence)
     print list_of_motif_probs
@@ -470,15 +476,18 @@ def PSSM(binding_sites,sequence, number):
          
         #Determining each initial index's P(subsequence|motif)/P(subsequence|background)
         #and appending it to prob_ratios
-        prob_ratios.append(list_of_motif_probs[initial]/list_of_back_probs[initial])
+        print 'motif prob', float(list_of_motif_probs[initial])
+        print 'back prob', float(list_of_back_probs[initial])
+        prob_ratios.append(float(list_of_motif_probs[initial])/float(list_of_back_probs[initial]))
 
     #Creating a list to store the PSSM scores in
     PSSM_scores = []
     
-    
+    print prob_ratios
     #Iterating over the ratios in prob_ratios
     for ratio in prob_ratios:
         #Appending the PSSM list with the PSSM score, determined by taking the log base 2 for the ratio
+        print ratio
         PSSM_scores.append(math.log(ratio,2))
 
     #Iterating over the indexes of the values in list_of_motif_prob
