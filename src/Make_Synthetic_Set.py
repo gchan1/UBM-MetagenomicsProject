@@ -1,6 +1,6 @@
 #File: Make_Synthetic_Set.py
 #Author: Grace Chandler
-#Last edit: 18-07-14
+#Last edit: 13-10-14
 #Description: This program takes in a set of known binding sites/motifs and reconstructs a snthetic data set from it
 
 import time
