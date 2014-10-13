@@ -1,11 +1,12 @@
 #File: PSSM_Calls.py
 #Author: Grace Chandler
+#Last edit: 07-31-2014
 #Description: This file contains the function to make PSSM calls
 
 import os
 import sys
 
-
+#This function reads in a file of PSSM scores produced by the file PSSM_Markov_1.py and makes them usable. 
 def Get_PSSM_Sets():
     
     sets = []
@@ -23,6 +24,8 @@ def Get_PSSM_Sets():
         
     return sets
 
+#This function makes a master list of all the scores
+#This is useful for determining an overall mean and standard deviation for all scores
 def Make_List_All(pssm_sets):
     
     total_set = []
@@ -32,11 +35,15 @@ def Make_List_All(pssm_sets):
             total_set.append(float(score))
     
     return total_set
-            
+ 
+ 
+#this function checks if there is a binding site at an index
+#this is based off of info from the ROC_Data.txt file created by the PSSM_Markov_1 file           
 def Check_If_Binding_Site(index, bs_len, loci_list):
     
     #determine if the PSSM score's index lies within the range of the actual binding site
-        
+     
+    #this section is for if you want to hard code loci   
     #Make the binding site ranges
     #binding_site_regions = [[10, (10+bs_len)], [(40+bs_len), (40+(2*(bs_len)))]]
     
@@ -66,7 +73,7 @@ def Make_Call(pos_neg, PSSM_Scores, threshold, bs_len, loci_list):
         index = PSSM_Scores.index(score)
         
         
-        
+        #fixing the negatives because they weren't being recognized
         if '-' in str(score):
             score = score.strip('-')
             score = -float(score)
@@ -87,14 +94,11 @@ def Make_Call(pos_neg, PSSM_Scores, threshold, bs_len, loci_list):
             else:
                 pos_neg['false_pos'] += 1
        
-        
-           
-        #Now check the negatives
-        
                     
     print pos_neg
     return pos_neg  
  
+#this function plots an ROC curve for the PSSM data, showing how effective our method was at different thresholds
 def Plot_ROC(true_pos_rates, false_pos_rates, thresholds):
     
     import numpy as np
@@ -109,6 +113,8 @@ def Plot_ROC(true_pos_rates, false_pos_rates, thresholds):
     #plt.plot(extrax, extray) 
     y = true_pos_rates
     x = false_pos_rates
+    
+    #figure out a way to do this computationally
     z = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L']
 
     fig, ax = plt.subplots()
@@ -126,12 +132,17 @@ def Plot_ROC(true_pos_rates, false_pos_rates, thresholds):
     plt.savefig('ROC_Curve')
     plt.show()
     
+    
+#This function returns the true positive and false positive rates 
+#These are used to plot the ROC curve
 def Get_Rates(pos_neg):
     
     TPR = float(pos_neg['true_pos'])/ float((pos_neg['true_pos'] + pos_neg['false_neg']))
     FPR = float(pos_neg['false_pos'])/ float((pos_neg['false_pos'] + pos_neg['true_neg']))
     
     return TPR, FPR
+
+
 def main():
      
      
@@ -153,7 +164,7 @@ def main():
         except ValueError:
             loci_list.remove(item)
             
-            
+    #Establishing the dictionary to hold data to make TPR and FPR            
     pos_neg = dict()
     pos_neg['true_pos'] = 0
     pos_neg['false_pos'] = 0
@@ -183,6 +194,8 @@ def main():
     
     count = 0 
     
+    #This for excel file has all the data necessary to make the ROC curve so you can do it in other programs
+    #maybe make it CSV?
     For_Excel.write("Thresholds \n")
     for threshold in thresholds:
         
