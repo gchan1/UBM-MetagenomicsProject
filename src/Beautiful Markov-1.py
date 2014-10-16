@@ -256,6 +256,8 @@ def background_probs(binding_sites,sequence):
 #Forming the PSSM
 #Inputs: sequence, list of binding sites
 #Outputs: PSSM scores for each subsequence in the sliding window
+
+#NEEDS TO BE ALTERED TO TRAIN THE MARKOV MODEL OFF OF THE SEQUENCES SANS SITES
 def PSSM(binding_sites,sequence):
 
     #Defining the length of the window
@@ -289,8 +291,59 @@ def PSSM(binding_sites,sequence):
     return PSSM_scores
 
 
+def main():
 
-#Test example
-bsites = ['ACTGACTG','CTGACTGA','TGACTGAC','GACTGACT','ACCTGAAT','ACCTGAAT','ACCCGATT','AACTGTAT']
-x = 'AAGTAAATCGAGCTACATAGAATATCTGTTCACCCTCGGGGAGCGTGGGGTGTAC'
-PSSM(bsites,x)
+    Sequence_Data = open('Synth_Sets.txt', 'r')
+    file_path = os.path.join('..', 'data' , 'Aligned_motifs','Fur.txt' )
+    Binding_Sites = open(file_path, "r")
+    Binding_Sites.seek(0)
+    PSSM_Scores = open('PSSM_Scores.txt', 'w')
+    #ROC_Data = open('ROC_Data', 'w')
+    Sequence_Data.seek(0)
+    Binding_Sites.seek(0)
+    Sequence_Data_lines = Sequence_Data.readlines()
+    Binding_Sites_lines = Binding_Sites.readlines()
+    for line in Binding_Sites:
+        line = line.strip()
+ 
+    sequences = []
+    binding_sites = []
+    
+    for line in Sequence_Data_lines:
+        if line != "\n" and line != "\r\n" and line[0] != "<":
+            sequences.append(line.strip())
+    #print sequences
+    for line in Binding_Sites_lines:
+        if line != "\n" and line != "\r\n" and line[0] != "<":
+            binding_sites.append(line.strip())
+    
+    
+    
+    #do the pssm
+    for i in range(len(sequences)):
+        print'sequence i ', sequences[i]
+        PSSM_Score_List = PSSM(binding_sites, sequences[i] , i)
+        
+        #make the calls
+        #pos_neg = Sort_Calls(PSSM_Score_List, threshold, pos_neg)
+        
+        #keys = pos_neg.keys()
+        
+        for item in PSSM_Score_List:
+            PSSM_Scores.write(str(item))
+            PSSM_Scores.write(' ')
+        
+        PSSM_Scores.write("\n")
+            
+        
+    PSSM_Scores.close()
+    Binding_Sites.close()
+    Sequence_Data.close()
+       
+        
+    print 'Finished'
+    
+
+
+main()
+
