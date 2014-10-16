@@ -7,19 +7,15 @@
 #Need to split into multiple functions
 
 #Function used to find the background probabilities when a Markov-1 model
-def background_probs(sequence):
+def background_probs(sequence, binding_sites):
 
     #A way where the user is asked what length of a sliding window that they want to use
     #Also makes the window length an int
     
-    input_check = False
-    while input_check == False:
-        window = int(raw_input("Enter window size: "))
-        #This is a way to make sure that the window inputted is appropriate
-        if window > 0:
-            input_check = True
-        else:
-            print 'Invalid sliding window: please enter a number greater than zero'
+    
+    window = int(len(binding_sites[0]))
+        
+        
             
     #Might want to make this a function like def initialize_counts()
     #Making a dictionary to hold the counts of all possible base transitions
@@ -117,8 +113,8 @@ def background_probs(sequence):
         print key,
         print '='
         print counts[key]
-
-
+        
+        
     #Making the counts a float
     for key in counts:
         counts[key] = float(counts[key])
@@ -293,7 +289,5 @@ def background_probs(sequence):
     return list_of_back_probs
 
 
-x = 'AAGTAATCGAGCTACATAGAATATCTGTTCACCCTCGGGGAGCGTGGGGTGTAC'
-list_of_back_probs = background_probs(x)
-print list_of_back_probs
+
 
