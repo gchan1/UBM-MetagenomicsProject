@@ -1,5 +1,6 @@
 __author__ = 'jobott'
 
+#making a comment to test out git 
 def site_length(binding_sites):
     window = int(len(binding_sites[0]))
     return window
