@@ -1,14 +1,21 @@
-#Name: Grace Chandler, Manchild
+#Name: Grace Chandler and Jacob O'Bott
 #Description: This program is a PSSM calling script using, for this time, synthetically created data sets. It makes pssm binding site calls
 #and based off of these calls, it determines a true pos/false neg rate and an ROC curve. This is an incredibly rough copy of the final 
-#product, but shoudl work
+#product, but should work
+
+
+#Things that need to be done
+
+#training this off of the sequences without binding sites
+#problems: motif probs aren't updating. WHY?
+#Tasks: make both the markov1 and markov0 options
+#it should do both because the entire point is for comparison
 
 import time
 import math
 import os.path
 import matplotlib.pyplot as plt
 import matplotlib.mlab as mlab
-
     
 #Function to determine the PSFM, takes an input of the putative binding sites in the form of a list.
 #Note: all of the binding sites are assumed to be same length
@@ -35,10 +42,10 @@ def PSFM(binding_sites):
 
 
     #Making the PSFM have the number of columns as the length of the first binding site
-    a_bases.extend([float(0)]*site_length)
-    c_bases.extend([float(0)]*site_length)
-    t_bases.extend([float(0)]*site_length)
-    g_bases.extend([float(0)]*site_length)
+    a_bases.extend([float(1)]*site_length)
+    c_bases.extend([float(1)]*site_length)
+    t_bases.extend([float(1)]*site_length)
+    g_bases.extend([float(1)]*site_length)
 
     #Viewing each site individually
     for site in binding_sites:
@@ -56,10 +63,10 @@ def PSFM(binding_sites):
                 g_bases[base] += 1
 
     #Making the counts into frequencies
-    a_freq = [x/total_sites for x in a_bases]
-    c_freq = [x/total_sites for x in c_bases]
-    t_freq = [x/total_sites for x in t_bases]
-    g_freq = [x/total_sites for x in g_bases]
+    a_freq = [x/(total_sites+4) for x in a_bases]
+    c_freq = [x/(total_sites+4) for x in c_bases]
+    t_freq = [x/(total_sites+4) for x in t_bases]
+    g_freq = [x/(total_sites+4) for x in g_bases]
 
 
     #Create a list to store the PSFM in (a list with the 4 lists of the frequencies of a,c,t,g)
@@ -90,13 +97,12 @@ def P_motif(PSFM,sequences):
 
     #Iterating the indexes of all of the initial bases for each case that the sliding window encounters
     for initial in range(len(sequences)-window+1):
+
         #Creating a subsequence that starts at the given initial index and is as long as the pre-determined window
         subsequence = sequences[initial:initial+window]
-        print 'subsequence', subsequence
+        
         #Setting the initial value for the motif probability of the sliding window at 1
         motif_prob = float(1)
-        print 'init motif prob', motif_prob
-        
         
         #Iterating over the indexes of the bases in the subsequence
         for i in range(len(subsequence)):
@@ -115,24 +121,23 @@ def P_motif(PSFM,sequences):
             elif subsequence[i] == 'G':
                 motif_prob *= float(PSFM[3][i])
         
-            print'motif prob', motif_prob
         #Appending the list that stores the motif probabilities by the value motif_prob
        
         #Added the motif prob
         
         list_of_motif_probs.append(motif_prob)
-        print 'added the motif prob'
+        #print 'added the motif prob'
         
         #Re-setting the value of motif_prob to 1 to apply to the next subsequence
-        motif_prob = 1
+        motif_prob = float(1)
 
     #Iterating over the indexes of the values in list_of_motif_prob
-    for start in range(len(list_of_motif_probs)):
+   # for start in range(len(list_of_motif_probs)):
         #Printing out the values of motif_prob with appropriate labeling
         #General format:
         #'P_motif(initial base - final base in window) = appropriate value of P_motif at the
         #                                                given point of the sliding window
-        print 'P_motif(bases %s'%(start+1), '- %s)='%(start+window),  '%s'%list_of_motif_probs[start]
+        #print 'P_motif(bases %s'%(start+1), '- %s)='%(start+window),  '%s'%list_of_motif_probs[start]
 
     #Having the function return the list containing the motif probabilities
 
@@ -147,7 +152,7 @@ def P_motif(PSFM,sequences):
 #Function used to find the background probabilities when using a Markov-1 model
 #Inputs: sequence that is going to be used for both the background generation and to apply the sliding window on
 #Outputs: A list of P(subsequence|background) for each subsequence fromed by a sliding window
-def background_probs(sequence, binding_sites):
+def background_probs(sequence, sequence_without_sites, binding_sites):
 
     #A way where the user is asked what length of a sliding window that they want to use
     #Also makes the window length an int
@@ -159,78 +164,46 @@ def background_probs(sequence, binding_sites):
     #Making a dictionary to hold the counts of all possible base transitions
    
     counts  = {}
-    counts["AA_count"] = 0
-    counts["AC_count"] = 0
-    counts["AT_count"] = 0
-    counts["AG_count"] = 0
-    counts["CA_count"] = 0
-    counts["CC_count"] = 0
-    counts["CT_count"] = 0
-    counts["CG_count"] = 0
-    counts["TA_count"] = 0
-    counts["TC_count"] = 0
-    counts["TT_count"] = 0
-    counts["TG_count"] = 0
-    counts["GA_count"] = 0
-    counts["GC_count"] = 0
-    counts["GT_count"] = 0
-    counts["GG_count"] = 0
+    counts["AA"] = 0
+    counts["AC"] = 0
+    counts["AT"] = 0
+    counts["AG"] = 0
+    counts["CA"] = 0
+    counts["CC"] = 0
+    counts["CT"] = 0
+    counts["CG"] = 0
+    counts["TA"] = 0
+    counts["TC"] = 0
+    counts["TT"] = 0
+    counts["TG"] = 0
+    counts["GA"] = 0
+    counts["GC"] = 0
+    counts["GT"] = 0
+    counts["GG"] = 0
     
     keys = counts.keys()
     values = counts.values()
 
     #Defining a variable for sequence length
-    sequence_length = len(sequence)
+    sequence_length = len(sequence_without_sites)
 
-
-    print "sequence", sequence
     
     #Calculating the counts of the transitions in the sequence inputted
     #Iterates over the all the bases in a sequence except the last one
     #Not the last one becasue it does not have a base after it,
     #hence no transition between bases that start at that base
+    
+    #CHANGE THIS SEQUENCE TO BE THE SEQUENCE WITHOUT THE BINDING SITES
     for i in range(sequence_length-1):
         #The first set of if/elif statements asks whether the
         # intitial base is A, T, C or G
-        if sequence[i] == 'A':
-            if sequence[i+1] == 'A':
-                counts["AA_count"] += 1
-            elif sequence[i+1] == 'C':
-                counts["AC_count"] += 1
-            elif sequence[i+1] == 'T':
-                counts["AT_count"] += 1
-            elif sequence[i+1] == 'G':
-                counts["AG_count"] += 1
-        elif sequence[i] == 'C':
-            if sequence[i+1] == 'A':
-                counts["CA_count"] += 1
-            elif sequence[i+1] == 'C':
-                counts["CC_count"] += 1
-            elif sequence[i+1] == 'T':
-                counts["CT_count"] += 1
-            elif sequence[i+1] == 'G':
-                counts["CG_count"] += 1
-        elif sequence[i] == 'T':
-            if sequence[i+1] == 'A':
-                counts["TA_count"] += 1
-            elif sequence[i+1] == 'C':
-                counts["TC_count"] += 1
-            elif sequence[i+1] == 'T':
-                counts["TT_count"] += 1
-            elif sequence[i+1] == 'G':
-                counts["TG_count"] += 1
-        elif sequence[i] == 'G':
-            if sequence[i+1] == 'A':
-                counts["GA_count"] += 1
-            elif sequence[i+1] == 'C':
-                counts["GC_count"] += 1
-            elif sequence[i+1] == 'T':
-                counts["GT_count"] += 1
-            elif sequence[i+1] == 'G':
-                counts["GG_count"] += 1
+        keyNucleotides = sequence[i]+sequence[i+1]
+        print keyNucleotides
+        counts[keyNucleotides] += 1;
 
     #Defining a variable for the total number of transitions observed
     transition_total = 0
+    
     #Iterates over all the counts in the counts dictionary and adds them to the value
     #of the total number of transitions
     
@@ -242,8 +215,8 @@ def background_probs(sequence, binding_sites):
     #was correct
     #If it is, then the total number of transitions observed in our Markov-1 assembly
     #should be equal to the length of the sequence minus one
-    if transition_total != sequence_length - 1:
-        print 'Incorrect number of transitions observed'
+    #if transition_total != sequence_length - 1:
+        #print 'Incorrect number of transitions observed'
 
     #Printing out information regarding the counts of each transition
     for key in keys:
@@ -264,33 +237,23 @@ def background_probs(sequence, binding_sites):
         print key, counts[key]
         
     #Defining variables that are the values of counts with the same first base (A,C,T,G)
-    AX_count = float(counts['AA_count'] + counts['AC_count'] + counts['AT_count'] + counts['AG_count'])
-    CX_count = float(counts['CA_count'] + counts['CC_count'] + counts['CT_count'] + counts['CG_count'])
-    TX_count = float(counts['TA_count'] + counts['TC_count'] + counts['TT_count'] + counts['TG_count'])
-    GX_count = float(counts['GA_count'] + counts['GC_count'] + counts['GT_count'] + counts['GG_count'])
+    A_count = float(counts['AA'] + counts['AC'] + counts['AT'] + counts['AG'])
+    C_count = float(counts['CA'] + counts['CC'] + counts['CT'] + counts['CG'])
+    T_count = float(counts['TA'] + counts['TC'] + counts['TT'] + counts['TG'])
+    G_count = float(counts['GA'] + counts['GC'] + counts['GT'] + counts['GG'])
 
+    
     #Makingg a dictionary to hold all the values of the background probabilities
     #Note: prob_AC = P(C|A), the conditional probability of getting C as the second base
     #given that A is the first base; prob_TG = P(G|T); ect.
-    background_probs = {
-        'prob_AA' : counts['AA_count']/AX_count,
-        'prob_AC' : counts['AC_count']/AX_count,
-        'prob_AT' : counts['AT_count']/AX_count,
-        'prob_AG' : counts['AG_count']/AX_count,
-        'prob_CA' : counts['CA_count']/CX_count,
-        'prob_CC' : counts['CC_count']/CX_count,
-        'prob_CT' : counts['CT_count']/CX_count,
-        'prob_CG' : counts['CG_count']/CX_count,
-        'prob_TA' : counts['TA_count']/TX_count,
-        'prob_TC' : counts['TC_count']/TX_count,
-        'prob_TT' : counts['TT_count']/TX_count,
-        'prob_TG' : counts['TG_count']/TX_count,
-        'prob_GA' : counts['GA_count']/GX_count,
-        'prob_GC' : counts['GC_count']/GX_count,
-        'prob_GT' : counts['GT_count']/GX_count,
-        'prob_GG' : counts['GG_count']/GX_count,
-    }
-
+   
+    Nucleotides = ['A', 'C','T','G']
+    
+    background_probs = {}
+    for nucleotide1 in Nucleotides:
+        for nucleotide2 in Nucleotides:
+            background_probs[nucleotide1+nucleotide2] = (counts[nucleotide1+nucleotide2]/ (locals()[(nucleotide1+ '_count')]))
+    
     keys = background_probs.keys()
     values = background_probs.values()
     
@@ -305,12 +268,15 @@ def background_probs(sequence, binding_sites):
     #Hence the use of sequence_length - window becasue any of the bases within
     #a window length of the end would not have a full window length of window
     #of bases following it
+    
     for i in range(sequence_length-window):
         #Defines a subsequence wich is the length of the window and starts at the first base
         subseq = sequence[i:i+window+1]
+        
         #Defining a variable to hold the value of the Markov-1 background
         #probability for the given window
         m1_prob = 1
+        
         #Only goes through this if it is the first term of the sequence:
         #Reverses the order of the sequence and then applies the markov-1 background
         #probability model to it. (This is explained in the comments on the next section)
@@ -318,43 +284,8 @@ def background_probs(sequence, binding_sites):
             #Inverting the sequence order
             subseq = subseq[::-1]
             for i in range(len(subseq)-1):
-                if subseq[i] == 'A':
-                    if subseq[i+1] == 'A':
-                        m1_prob *= background_probs['prob_AA']
-                    elif subseq[i+1] == 'C':
-                        m1_prob *= background_probs['prob_AC']
-                    elif subseq[i+1] == 'T':
-                        m1_prob *= background_probs['prob_AT']
-                    elif subseq[i+1] == 'G':
-                        m1_prob *= background_probs['prob_AG']
-                elif subseq[i] == 'C':
-                    if subseq[i+1] == 'A':
-                        m1_prob *= background_probs['prob_CA']
-                    elif subseq[i+1] == 'C':
-                        m1_prob *= background_probs['prob_CC']
-                    elif subseq[i+1] == 'T':
-                        m1_prob *= background_probs['prob_CT']
-                    elif subseq[i+1] == 'G':
-                        m1_prob *= background_probs['prob_CG']
-                elif subseq[i] == 'T':
-                    if subseq[i+1] == 'A':
-                        m1_prob *= background_probs['prob_TA']
-                    elif subseq[i+1] == 'C':
-                        m1_prob *= background_probs['prob_TC']
-                    elif subseq[i+1] == 'T':
-                        m1_prob *= background_probs['prob_TT']
-                    elif subseq[i+1] == 'G':
-                        m1_prob *= background_probs['prob_TG']
-                elif subseq[i] == 'G':
-                    if subseq[i+1] == 'A':
-                        m1_prob *= background_probs['prob_GA']
-                    elif subseq[i+1] == 'C':
-                        m1_prob *= background_probs['prob_GC']
-                    elif subseq[i+1] == 'T':
-                        m1_prob *= background_probs['prob_GT']
-                    elif subseq[i+1] == 'G':
-                        m1_prob *= background_probs['prob_GG']
-            
+                keyNucleotides = sequence[i]+sequence[i+1]
+                m1_prob *= background_probs[keyNucleotides]
             
             list_of_back_probs.append(m1_prob)
             print 'added back prob'
@@ -364,50 +295,15 @@ def background_probs(sequence, binding_sites):
             #Re-setting m1_prob to 1 for the markov-1 model to be applied again
             m1_prob = 1
 
+        m1_prob = 1
+        
         #Iterating over the bases in the formed subsequence
         for i in range(len(subseq)-1):
             #Set of if/elif statements that sorts based on the indexed base
-            if subseq[i] == 'A':
-                #Set of if/elif statements that sorts further based on the base
-                #that follows the indexed base
-                if subseq[i+1] == 'A':
-                    #Once sorted, multiplying the current value of the m1_prob for
-                    #the subsequence by the given conditional probability of the second
-                    #base occuring given that the first base occured
-                    m1_prob *= background_probs['prob_AA']
-                elif subseq[i+1] == 'C':
-                    m1_prob *= background_probs['prob_AC']
-                elif subseq[i+1] == 'T':
-                    m1_prob *= background_probs['prob_AT']
-                elif subseq[i+1] == 'G':
-                    m1_prob *= background_probs['prob_AG']
-            elif subseq[i] == 'C':
-                if subseq[i+1] == 'A':
-                    m1_prob *= background_probs['prob_CA']
-                elif subseq[i+1] == 'C':
-                    m1_prob *= background_probs['prob_CC']
-                elif subseq[i+1] == 'T':
-                    m1_prob *= background_probs['prob_CT']
-                elif subseq[i+1] == 'G':
-                    m1_prob *= background_probs['prob_CG']
-            elif subseq[i] == 'T':
-                if subseq[i+1] == 'A':
-                    m1_prob *= background_probs['prob_TA']
-                elif subseq[i+1] == 'C':
-                    m1_prob *= background_probs['prob_TC']
-                elif subseq[i+1] == 'T':
-                    m1_prob *= background_probs['prob_TT']
-                elif subseq[i+1] == 'G':
-                    m1_prob *= background_probs['prob_TG']
-            elif subseq[i] == 'G':
-                if subseq[i+1] == 'A':
-                    m1_prob *= background_probs['prob_GA']
-                elif subseq[i+1] == 'C':
-                    m1_prob *= background_probs['prob_GC']
-                elif subseq[i+1] == 'T':
-                    m1_prob *= background_probs['prob_GT']
-                elif subseq[i+1] == 'G':
-                    m1_prob *= background_probs['prob_GG']
+            #sequence i represents the 1st base, i+1 the second base
+            keyNucleotides = sequence[i]+sequence[i+1]
+            m1_prob *= background_probs[keyNucleotides]
+            
 
         #After iterating through the subsequence and obtaining its m1_prob,
         #apending that to our list of background probabilities
@@ -448,19 +344,16 @@ def Plot_Histogram(data_set, file_name, num_bins, x_label, y_label):
 #Forming the PSSM
 #Inputs: sequence, list of binding sites
 #Outputs: PSSM scores for each subsequence in the sliding window
-def PSSM(binding_sites,sequence, number):
+def PSSM(binding_sites,sequence, number, dna_without_sites):
 
     print binding_sites
     window = len(binding_sites[0])
     
-
-    PSFM_temp = PSFM(binding_sites)
-    print 'psfm temp' , PSFM_temp
     #Forming the motif probabilities
-    list_of_motif_probs = P_motif(PSFM_temp,sequence)
+    list_of_motif_probs = P_motif(PSFM(binding_sites),sequence)
     print list_of_motif_probs
     #Forming the background probabilities
-    list_of_back_probs = background_probs(sequence, binding_sites)
+    list_of_back_probs = background_probs(sequence, dna_without_sites,binding_sites)
     print list_of_back_probs
     
     #Creating a list to store the ratio of P(subsequence|motif)/P(subsequence|background)
@@ -471,23 +364,21 @@ def PSSM(binding_sites,sequence, number):
     print "length of motif probs", len(list_of_motif_probs)
     #Iterating over the index of each subsequence initial base
     for initial in range(len(list_of_motif_probs)):
-         
-       
-         
         #Determining each initial index's P(subsequence|motif)/P(subsequence|background)
         #and appending it to prob_ratios
         print 'motif prob', float(list_of_motif_probs[initial])
         print 'back prob', float(list_of_back_probs[initial])
-        prob_ratios.append(float(list_of_motif_probs[initial])/float(list_of_back_probs[initial]))
+        tempRatio = float(list_of_motif_probs[initial])/float(list_of_back_probs[initial])
+        prob_ratios.append(tempRatio)
 
     #Creating a list to store the PSSM scores in
     PSSM_scores = []
     
-    print prob_ratios
+    #print prob_ratios
     #Iterating over the ratios in prob_ratios
     for ratio in prob_ratios:
         #Appending the PSSM list with the PSSM score, determined by taking the log base 2 for the ratio
-        print ratio
+        print "ratio", ratio
         PSSM_scores.append(math.log(ratio,2))
 
     #Iterating over the indexes of the values in list_of_motif_prob
@@ -513,46 +404,57 @@ def PSSM(binding_sites,sequence, number):
 
 def main():
 
+    #open all the files
     Sequence_Data = open('Synth_Sets.txt', 'r')
     file_path = os.path.join('..', 'data' , 'Aligned_motifs','Fur.txt' )
     Binding_Sites = open(file_path, "r")
     Binding_Sites.seek(0)
     PSSM_Scores = open('PSSM_Scores.txt', 'w')
-    #ROC_Data = open('ROC_Data', 'w')
+    Synth_Sans_Sites = open('noSites.txt', 'r')
+    
+    #make sure all the files are properly opened and ready to write
     Sequence_Data.seek(0)
     Binding_Sites.seek(0)
+    Synth_Sans_Sites.seek(0)
+    
+    #get all the lines from these infiles
     Sequence_Data_lines = Sequence_Data.readlines()
     Binding_Sites_lines = Binding_Sites.readlines()
-    for line in Binding_Sites:
-        line = line.strip()
+    Synth_Sans_Sites_lines = Synth_Sans_Sites.readlines()
+    
  
+    #initialize arrays for sequences ,binding sites, and synth dna without sites
     sequences = []
     binding_sites = []
+    no_sites = []
     
+    #strip all the whitespace from all the lines
     for line in Sequence_Data_lines:
         if line != "\n" and line != "\r\n" and line[0] != "<":
             sequences.append(line.strip())
-    #print sequences
+        
     for line in Binding_Sites_lines:
         if line != "\n" and line != "\r\n" and line[0] != "<":
             binding_sites.append(line.strip())
     
-    
-    
+    for line in Synth_Sans_Sites_lines:
+        if line != "\n" and line != "\r\n" and line[0] != "<":
+            no_sites.append(line.strip())
+
     #do the pssm
     for i in range(len(sequences)):
         print'sequence i ', sequences[i]
-        PSSM_Score_List = PSSM(binding_sites, sequences[i] , i)
         
-        #make the calls
-        #pos_neg = Sort_Calls(PSSM_Score_List, threshold, pos_neg)
+        #change this so we pass in the no_sites
+        PSSM_Score_List = PSSM(binding_sites, sequences[i] , i, no_sites[i])
         
-        #keys = pos_neg.keys()
         
+        #write the scores to the appropriate file
         for item in PSSM_Score_List:
             PSSM_Scores.write(str(item))
             PSSM_Scores.write(' ')
         
+        #go to the next line because we are finished with one sequence
         PSSM_Scores.write("\n")
             
         
@@ -566,5 +468,6 @@ def main():
 
 
 main()
+
 
 
