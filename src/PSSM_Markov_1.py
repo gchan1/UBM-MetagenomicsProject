@@ -185,8 +185,10 @@ def background_probs(sequence, sequence_without_sites, binding_sites):
     values = counts.values()
 
     #Defining a variable for sequence length
-    sequence_length = len(sequence_without_sites)
+    sequence_length = len(sequence)
 
+    print 'sequence length', sequence_length
+    print 'without sites length', len(sequence_without_sites)
     
     #Calculating the counts of the transitions in the sequence inputted
     #Iterates over the all the bases in a sequence except the last one
@@ -197,7 +199,7 @@ def background_probs(sequence, sequence_without_sites, binding_sites):
     for i in range(sequence_length-1):
         #The first set of if/elif statements asks whether the
         # intitial base is A, T, C or G
-        keyNucleotides = sequence[i]+sequence[i+1]
+        keyNucleotides = sequence_without_sites[i]+sequence_without_sites[i+1]
         print keyNucleotides
         counts[keyNucleotides] += 1;
 
@@ -319,6 +321,166 @@ def background_probs(sequence, sequence_without_sites, binding_sites):
 
     return list_of_back_probs
 
+#Markov 0 model
+#alternative ot the other background probs function
+#for comparison purposes mainly
+def markov_0_probs(sequence, sequence_without_sites, binding_sites):
+
+    #A way where the user is asked what length of a sliding window that they want to use
+    #Also makes the window length an int
+    
+    input_check = False
+    window = int(len(binding_sites[0]))
+            
+    #Might want to make this a function like def initialize_counts()
+    #Making a dictionary to hold the counts of all possible base transitions
+   
+    counts  = {}
+    counts["A"] = 0
+    counts["C"] = 0
+    counts["T"] = 0
+    counts["G"] = 0
+    
+    
+    keys = counts.keys()
+    values = counts.values()
+
+    #Defining a variable for sequence length
+    sequence_length = len(sequence)
+
+    print 'sequence length', sequence_length
+    print 'without sites length', len(sequence_without_sites)
+    
+    #Calculating the counts of the transitions in the sequence inputted
+    #Iterates over the all the bases in a sequence except the last one
+    #Not the last one becasue it does not have a base after it,
+    #hence no transition between bases that start at that base
+    
+    #CHANGE THIS SEQUENCE TO BE THE SEQUENCE WITHOUT THE BINDING SITES
+    for i in range(sequence_length-1):
+        #The first set of if/elif statements asks whether the
+        # intitial base is A, T, C or G
+        keyNucleotides = sequence_without_sites[i]
+        print keyNucleotides
+        counts[keyNucleotides] += 1;
+
+    #Defining a variable for the total number of transitions observed
+    transition_total = 0
+    
+    #Iterates over all the counts in the counts dictionary and adds them to the value
+    #of the total number of transitions
+    
+    for key in counts:
+        transition_total += counts[key]
+    
+        
+    #This is a check to make sure that the total number of transitions observed
+    #was correct
+    #If it is, then the total number of transitions observed in our Markov-1 assembly
+    #should be equal to the length of the sequence minus one
+    #if transition_total != sequence_length - 1:
+        #print 'Incorrect number of transitions observed'
+
+    #Printing out information regarding the counts of each transition
+    for key in keys:
+        print key,
+        print '='
+        print counts[key]
+        
+        
+    #Making the counts a float
+    for key in keys:
+        counts[key] = float(counts[key])
+
+    #Printing out the sequence length
+    #print ' '
+    #print 'The length of the sequence was %s' %sequence_length
+
+    for key in keys:
+        print key, counts[key]
+        
+    #Defining variables that are the values of counts with the same first base (A,C,T,G)
+    A_count = float(counts['A'])
+    C_count = float(counts['C'])
+    T_count = float(counts['T'])
+    G_count = float(counts['G'])
+
+    
+    #Makingg a dictionary to hold all the values of the background probabilities
+    #Note: prob_AC = P(C|A), the conditional probability of getting C as the second base
+    #given that A is the first base; prob_TG = P(G|T); ect.
+   
+    Nucleotides = ['A', 'C','T','G']
+    
+    background_probs = {}
+    for nucleotide1 in Nucleotides:
+        background_probs[nucleotide1] = (counts[nucleotide1]/ (locals()[(nucleotide1+ '_count')]))
+    
+    keys = background_probs.keys()
+    values = background_probs.values()
+    
+
+    #Overall section scanning an input sequence with a sliding window and
+    #applying the Markov-1 background probabilities
+
+    #Defining a list to store the background probabilities for each window observed
+    list_of_back_probs = []
+
+    #Iterating over all the bases that would be the start of a window
+    #Hence the use of sequence_length - window becasue any of the bases within
+    #a window length of the end would not have a full window length of window
+    #of bases following it
+    
+    for i in range(sequence_length-window):
+        #Defines a subsequence wich is the length of the window and starts at the first base
+        subseq = sequence[i:i+window+1]
+        
+        #Defining a variable to hold the value of the Markov-1 background
+        #probability for the given window
+        m0_prob = 1
+        
+        #Only goes through this if it is the first term of the sequence:
+        #Reverses the order of the sequence and then applies the markov-1 background
+        #probability model to it. (This is explained in the comments on the next section)
+        if i == 0:
+            #Inverting the sequence order
+            subseq = subseq[::-1]
+            for i in range(len(subseq)-1):
+                keyNucleotides = sequence[i]
+                m0_prob *= background_probs[keyNucleotides]
+            
+            list_of_back_probs.append(m0_prob)
+            print 'added back prob'
+            print subseq
+            #Re-inverting the sequence order so that it is the same as before
+            subseq = subseq[::-1]
+            #Re-setting m1_prob to 1 for the markov-1 model to be applied again
+            m0_prob = 1
+
+        m0_prob = 1
+        
+        #Iterating over the bases in the formed subsequence
+        for i in range(len(subseq)-1):
+            #Set of if/elif statements that sorts based on the indexed base
+            #sequence i represents the 1st base, i+1 the second base
+            keyNucleotides = sequence[i]
+            m0_prob *= background_probs[keyNucleotides]
+            
+
+        #After iterating through the subsequence and obtaining its m1_prob,
+        #apending that to our list of background probabilities
+        list_of_back_probs.append(m0_prob)
+        print 'added background prob'
+        #Re-setting m1_prob to 1 so that the next subsequence's m1_prob can be calculated
+        m0_prob = 1
+
+    #Printing the background probabilities for each subsequence
+    print ' '
+    for start in range(len(list_of_back_probs)):
+        print 'P_back(bases %s'%(start+1), '- %s)='%(start+window),  '%s'%list_of_back_probs[start]
+
+    return list_of_back_probs
+
 #to make histograms
 def Plot_Histogram(data_set, file_name, num_bins, x_label, y_label):
 
@@ -344,7 +506,7 @@ def Plot_Histogram(data_set, file_name, num_bins, x_label, y_label):
 #Forming the PSSM
 #Inputs: sequence, list of binding sites
 #Outputs: PSSM scores for each subsequence in the sliding window
-def PSSM(binding_sites,sequence, number, dna_without_sites):
+def PSSM_Markov_1(binding_sites,sequence, number, dna_without_sites):
 
     print binding_sites
     window = len(binding_sites[0])
@@ -400,7 +562,62 @@ def PSSM(binding_sites,sequence, number, dna_without_sites):
     #PSSM_scores = pssm_quick_sort(PSSM_scores)
     return  PSSM_scores
 
+#This is the pssm markov 0 version to use for background model comparison
+def PSSM_Markov_0(binding_sites,sequence, number, dna_without_sites):
 
+    print binding_sites
+    window = len(binding_sites[0])
+    
+    #Forming the motif probabilities
+    list_of_motif_probs = P_motif(PSFM(binding_sites),sequence)
+    print list_of_motif_probs
+    #Forming the background probabilities
+    list_of_back_probs = markov_0_probs(sequence, dna_without_sites,binding_sites)
+    print list_of_back_probs
+    
+    #Creating a list to store the ratio of P(subsequence|motif)/P(subsequence|background)
+    prob_ratios = []
+
+
+    print "length of background probs", len(list_of_back_probs)
+    print "length of motif probs", len(list_of_motif_probs)
+    #Iterating over the index of each subsequence initial base
+    for initial in range(len(list_of_motif_probs)):
+        #Determining each initial index's P(subsequence|motif)/P(subsequence|background)
+        #and appending it to prob_ratios
+        print 'motif prob', float(list_of_motif_probs[initial])
+        print 'back prob', float(list_of_back_probs[initial])
+        tempRatio = float(list_of_motif_probs[initial])/float(list_of_back_probs[initial])
+        prob_ratios.append(tempRatio)
+
+    #Creating a list to store the PSSM scores in
+    PSSM_scores = []
+    
+    #print prob_ratios
+    #Iterating over the ratios in prob_ratios
+    for ratio in prob_ratios:
+        #Appending the PSSM list with the PSSM score, determined by taking the log base 2 for the ratio
+        print "ratio", ratio
+        PSSM_scores.append(math.log(ratio,2))
+
+    #Iterating over the indexes of the values in list_of_motif_prob
+    for start in range(len(PSSM_scores)):
+        #Printing out the PSSM values with appropriate labeling
+        #General format:
+        #'PSSM_score(initial base - final base in window) = appropriate PSSM value at the
+#                                                   given point of the sliding window
+       
+       
+        print 'PSSM_score(bases %s'%(start+1), '- %s)='%(start+window),  '%s'%PSSM_scores[start]
+
+
+    #file_name = raw_input("Please enter a name for the Histogram file: ")
+    #Plot_Histogram(PSSM_scores, number, 50 , 'Score', 'Counts')
+
+    
+    #PSSM_scores = assign_location(PSSM_scores)
+    #PSSM_scores = pssm_quick_sort(PSSM_scores)
+    return  PSSM_scores
 
 def main():
 
@@ -409,7 +626,8 @@ def main():
     file_path = os.path.join('..', 'data' , 'Aligned_motifs','Fur.txt' )
     Binding_Sites = open(file_path, "r")
     Binding_Sites.seek(0)
-    PSSM_Scores = open('PSSM_Scores.txt', 'w')
+    PSSM_Scores_0 = open('PSSM_Scores_0.txt', 'w')
+    PSSM_Scores_1 = open('PSSM_Scores_1.txt', 'w')
     Synth_Sans_Sites = open('noSites.txt', 'r')
     
     #make sure all the files are properly opened and ready to write
@@ -422,11 +640,15 @@ def main():
     Binding_Sites_lines = Binding_Sites.readlines()
     Synth_Sans_Sites_lines = Synth_Sans_Sites.readlines()
     
+    
+    print "synthsetsanssites", Synth_Sans_Sites_lines
+    
  
     #initialize arrays for sequences ,binding sites, and synth dna without sites
     sequences = []
     binding_sites = []
-    no_sites = []
+    
+    
     
     #strip all the whitespace from all the lines
     for line in Sequence_Data_lines:
@@ -437,28 +659,33 @@ def main():
         if line != "\n" and line != "\r\n" and line[0] != "<":
             binding_sites.append(line.strip())
     
-    for line in Synth_Sans_Sites_lines:
-        if line != "\n" and line != "\r\n" and line[0] != "<":
-            no_sites.append(line.strip())
+    no_sites = ''.join(Synth_Sans_Sites_lines).strip()
+   
 
     #do the pssm
     for i in range(len(sequences)):
         print'sequence i ', sequences[i]
         
         #change this so we pass in the no_sites
-        PSSM_Score_List = PSSM(binding_sites, sequences[i] , i, no_sites[i])
-        
+        PSSM_Scores_Markov_0 = PSSM_Markov_0(binding_sites, sequences[i] , i, no_sites)
+        PSSM_Scores_Markov_1 = PSSM_Markov_1(binding_sites, sequences[i] , i, no_sites)
         
         #write the scores to the appropriate file
-        for item in PSSM_Score_List:
-            PSSM_Scores.write(str(item))
-            PSSM_Scores.write(' ')
+        for item in PSSM_Scores_Markov_0:
+            PSSM_Scores_0.write(str(item))
+            PSSM_Scores_0.write(' ')
+            
+        for item in PSSM_Scores_Markov_1:
+            PSSM_Scores_1.write(str(item))
+            PSSM_Scores_1.write(' ')
         
         #go to the next line because we are finished with one sequence
-        PSSM_Scores.write("\n")
+        PSSM_Scores_0.write("\n")
+        PSSM_Scores_1.write("\n")
             
         
-    PSSM_Scores.close()
+    PSSM_Scores_0.close()
+    PSSM_Scores_1.close()
     Binding_Sites.close()
     Sequence_Data.close()
        
